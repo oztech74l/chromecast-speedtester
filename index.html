@@ -1,0 +1,147 @@
+<html>
+  <head>
+    <title>Chromecast Receivers - Launcher</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="common.css">
+    <link rel="icon" type="image/svg+xml" href="cast-icon.svg">
+    <style>
+
+/* Center everything. */
+body {
+  text-align: center;
+}
+
+#loading {
+  height: 10vh;
+}
+
+#instructions {
+  font-size: 3vh;
+  margin-bottom: 5vh;
+}
+
+#options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  gap: 4vh;
+}
+
+.option {
+  border: 1px solid black;
+  width: 15vw;
+  min-width: 10em;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 500px) {
+  .option {
+    min-width: 8em;
+  }
+}
+
+@media (max-width: 400px) {
+  body {
+    font-size: 3vh;
+  }
+}
+
+.title {
+  font-size: 4vh;
+}
+
+.description {
+  font-size: 2vh;
+  margin-bottom: 2vh;
+}
+
+.launch {
+  /* Style the launch button to just be the icon. */
+  border: none;
+  background: none;
+  cursor: pointer;
+
+  /* Make it 10% of the view port height. */
+  height: 10vh;
+
+  /* Push it to the bottom of its container. */
+  margin-top: auto;
+}
+
+.launch img {
+  /* Fill the button size with the image. */
+  height: 100%;
+}
+
+#source {
+  margin-top: 10vh;
+  font-size: 2vh;
+}
+
+#source a {
+  color: black;
+}
+
+    </style>
+    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+    <script>
+
+// Start a sender session so that the cast button will launch the right app.
+window['__onGCastApiAvailable'] = function(isAvailable) {
+  if (isAvailable) {
+    // Hide the loading message and show the launch button.
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('instructions').classList.remove('hidden');
+    document.getElementById('options').classList.remove('hidden');
+  }
+};
+
+function launch(appId) {
+  cast.framework.CastContext.getInstance().setOptions({
+    receiverApplicationId: appId,
+    autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
+  });
+  cast.framework.CastContext.getInstance().requestSession();
+}
+
+    </script>
+  </head>
+  <body>
+    <!-- A very brief message while loading. -->
+    <div id="loading">
+      Loading Chromecast APIs...
+    </div>
+
+    <!-- The launch buttons show even when there are no devices. -->
+
+    <div id="instructions" class="hidden">
+      Click the cast icon for any receiver to launch that receiver.
+    </div>
+
+    <div id="options" class="hidden">
+      <div class="option">
+        <div class="title">Speed Test</div>
+        <div class="description">Powered by OpenSpeedtest.com</div>
+        <button class="launch" onclick="launch('009EBD9B')"><img src="cast-icon.svg"></button>
+      </div>
+<!--
+      <div class="option">
+        <div class="title">Print Cast SDK Version &amp; Serial Number</div>
+        <div class="description">Print (and speak aloud, for speaker devices) the Cast SDK version and device serial number.</div>
+        <button class="launch" onclick="launch('6889684F')"><img src="cast-icon.svg"></button>
+      </div>
+
+      <div class="option">
+        <div class="title">Visualize Key Events</div>
+        <div class="description">See remote control key events on a Chromecast in realtime.</div>
+        <button class="launch" onclick="launch('C5091515')"><img src="cast-icon.svg"></button>
+      </div>
+    </div>
+
+    <div id="source">
+      <a href="https://github.com/joeyparrish/chromecast-receivers">Source Code</a>
+-->    
+    </div>
+  </body>
+</html>

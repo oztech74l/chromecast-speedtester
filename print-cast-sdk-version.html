@@ -1,0 +1,168 @@
+<html lang="en">
+  <head>
+    <title>Print Cast SDK Version</title>
+    <link rel="stylesheet" type="text/css" href="common.css">
+    <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+    <script src="start-session.js"></script>
+    <style>
+
+body {
+  font-size: 9vh;
+}
+
+div {
+  margin-bottom: 1em;
+}
+
+tt {
+  display: block;
+}
+
+#errorMessage {
+  color: #bb0000;
+  font-weight: bold;
+}
+
+    </style>
+  </head>
+  <body>
+    <div>
+      Cast SDK version: <tt id="sdkVersionOutput"></tt>
+    </div>
+    <div>
+      Device serial number: <tt id="deviceSerialOutput"></tt>
+    </div>
+    <div id="errorMessage">
+    </div>
+  </body>
+  <script>
+
+async function main() {
+  // The NATO phonetic alphabet, for clarity of similar-sounding letters.
+  const phonetic = {
+    'A': 'alpha',
+    'B': 'bravo',
+    'C': 'Charlie',
+    'D': 'delta',
+    'E': 'echo',
+    'F': 'foxtrot',
+    'G': 'golf',
+    'H': 'hotel',
+    'I': 'India',
+    'J': 'Juliet',
+    'K': 'kilo',
+    'L': 'Lima',
+    'M': 'Mike',
+    'N': 'November',
+    'O': 'Oscar',
+    'P': 'papa',
+    'Q': 'Quebec',
+    'R': 'Romeo',
+    'S': 'Sierra',
+    'T': 'tango',
+    'U': 'uniform',
+    'V': 'Victor',
+    'W': 'whiskey',
+    'X': 'x-ray',
+    'Y': 'yankee',
+    'Z': 'Zulu',
+  };
+
+  const params = new URLSearchParams(location.search);
+  const deviceSerial = params.get('serial') || '';
+
+  const sdkVersion = window.cast ? cast.framework.VERSION : 0;
+
+  deviceSerialOutput.textContent = deviceSerial;
+  sdkVersionOutput.textContent = sdkVersion;
+  errorMessage.textContent = '';
+
+  if (window.speechSynthesis) {
+    function say(sentence, rate) {
+      console.log(`Saying: ${sentence}`);
+
+      return new Promise((resolve, reject) => {
+        const utterance = new SpeechSynthesisUtterance(sentence);
+        utterance.lang = 'en';
+        utterance.rate = rate;
+        utterance.onend = resolve;
+        utterance.onerror = reject;
+        speechSynthesis.speak(utterance);
+      });
+    }
+    window.say = say;  // For debugging
+
+    function pause(seconds) {
+      return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+    }
+
+    async function announce(fastPart, slowParts) {
+      await say(fastPart, 1.0);
+      await pause(1.0);
+
+      for (const slowPart of slowParts) {
+        // Pad these each to the same duration.
+        const targetDuration = 1.1;
+
+        const start = Date.now();
+        await say(slowPart, 0.5);
+        const end = Date.now();
+        const duration = (end - start) / 1000;
+
+        await pause(targetDuration - duration);
+      }
+
+      await pause(1.0);
+    }
+
+    const deviceSerialParts = deviceSerial.split('')
+        .map(x => {
+          if (/[a-z]/.exec(x)) {
+            // Speak the letter in uppercase, because that says the name "A"
+            // (pronounced long like "ey") instead of the word "a" (pronounced
+            // "uh").
+            x = x.toUpperCase();
+            return 'lowercase ' + x + ', as in ' + phonetic[x];
+          } else if (/[A-Z]/.exec(x)) {
+            return 'capital ' + x + ', as in ' + phonetic[x];
+          } else {
+            return 'the number ' + x;
+          }
+        });
+
+    const sdkVersionParts = sdkVersion.split('')
+        .map(x => x == '.' ? 'point' : x);
+
+    const deviceSerialAnnouncement = 'The device serial number is:';
+    const sdkVersionAnnouncement = 'The Cast SDK version number is:';
+
+    async function announceEverything() {
+      await announce(sdkVersionAnnouncement, sdkVersionParts);
+      await announce(deviceSerialAnnouncement, deviceSerialParts);
+      await pause(3.0);
+    }
+    window.announceEverything = announceEverything;  // For debugging
+
+    try {
+      await announceEverything();
+      await say('Message repeats.', 1.0);
+      await pause(1.0);
+      await announceEverything();
+      if (cast.__platform__) {
+        window.close();
+      }
+    } catch (error) {
+      // On Cast, it's fine to synthesize speech on page load.
+      // On Chrome, you need user interaction.  To debug, allow clicking the
+      // document to start this process.
+      errorMessage.textContent = 'Speech failure.  Click document to play sound.';
+      document.addEventListener('click', main, {once: true});
+    };
+  } else {
+    errorMessage.textContent = 'Speech API unavailable.';
+  }
+}
+
+main();
+  </script>
+</html>

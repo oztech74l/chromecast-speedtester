@@ -1,0 +1,215 @@
+<html>
+  <head>
+    <title>Show Keydown Events</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="common.css">
+    <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+    <script src="start-session.js"></script>
+    <style>
+
+@font-face {
+  font-family: 'noto-emoji';
+  src: url('noto-emoji.ttf');
+}
+
+body {
+  font-family: 'Roboto', sans;
+}
+
+.block {
+  font-family: 'noto-emoji';
+
+  width: 50%;
+  margin: 5vh auto;
+
+  font-size: 7vh;
+
+  display: flex;
+  flex-direction: column;
+  gap: 3vh;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+
+  height: 8vh;
+
+  justify-content: center;
+}
+
+.cell {
+  display: flex;
+
+  width: 25%;
+  max-width: 15vh;
+
+  line-height: 10vh;
+
+  align-items: center;
+  justify-content: center;
+}
+
+.pressed {
+  background-color: red;
+}
+
+/* Required to get keyboard events, but we don't want to see these. */
+cast-media-player {
+  display: none;
+}
+touch-controls {
+  display: none;
+}
+
+.color-button::after {
+  content: ' ';
+  width: 0.8em;
+  height: 0.8em;
+  border: 1px solid black;
+}
+
+#red::after {
+  background-color: red;
+}
+#green::after {
+  background-color: green;
+}
+#yellow::after {
+  background-color: yellow;
+}
+#blue::after {
+  background-color: blue;
+}
+
+    </style>
+  </head>
+  <body>
+    <!-- Required to get keyboard events: -->
+    <cast-media-player></cast-media-player>
+
+    <div class="block">
+      <div class="row">
+        <div class="cell"></div>
+        <div id="up" class="cell">▲</div>
+        <div class="cell"></div>
+      </div>
+      <div class="row">
+        <div id="left" class="cell">◄</div>
+        <div id="enter" class="cell">⎆</div>
+        <div id="right" class="cell">►</div>
+      </div>
+      <div class="row">
+        <div class="cell"></div>
+        <div id="down" class="cell">▼</div>
+        <div class="cell"></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="row">
+        <div id="rewind" class="cell">⏪</div>
+        <div id="pause" class="cell">⏸</div>
+        <div id="fastforward" class="cell">⏩</div>
+      </div>
+      <div class="row">
+        <div id="back" class="cell">🔙</div>
+        <div id="play" class="cell">▶️</div>
+        <div id="stop" class="cell">⏹</div>
+      </div>
+      <div class="row">
+        <div id="previous" class="cell">⏮</div>
+        <div id="playpause" class="cell">⏯</div>
+        <div id="next" class="cell">⏭</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="row">
+        <div id="red" class="cell color-button"></div>
+        <div id="green" class="cell color-button"></div>
+        <div id="yellow" class="cell color-button"></div>
+        <div id="blue" class="cell color-button"></div>
+      </div>
+    </div>
+  </body>
+  <script>
+
+function keyToElementId(key) {
+  switch (key) {
+    case 'Enter': return 'enter';
+    case 'ArrowUp': return 'up';
+    case 'ArrowDown': return 'down';
+    case 'ArrowRight': return 'right';
+    case 'ArrowLeft': return 'left';
+
+    case 'MediaRewind': return 'rewind';
+    case 'MediaPause': return 'pause';
+    case 'MediaFastForward': return 'fastforward';
+
+    case 'BrowserBack': return 'back';
+    case 'MediaPlay': return 'play';
+    case 'MediaStop': return 'stop';
+
+    // I don't have buttons for these on my old Samsung TV remote.  -Joey
+    case 'MediaTrackPrevious': return 'previous';
+    case 'MediaPlayPause': return 'playpause';
+    case 'MediaTrackNext': return 'next';
+
+    // I do have these color buttons on my old Samsung TV remote.  -Joey
+    case 'ColorF0Red': return 'red';
+    case 'ColorF1Green': return 'green';
+    case 'ColorF2Yellow': return 'yellow';
+    case 'ColorF3Blue': return 'blue';
+  }
+
+  return null;
+}
+
+function main() {
+  const controls = document.querySelector('touch-controls');
+  const keyTarget = controls?.shadowRoot.querySelector('.touch-layer');
+
+  // Not clear what logic makes key events fire here, but if they do, they do
+  // not propagate to the document.  This may be required on some devices.
+  if (keyTarget) {
+    console.log('Listening to touch control layer');
+    listenForKeys(keyTarget);
+  }
+
+  // When they fire here, the target is document.body.
+  // This is the target for my "Chromecast w/ Google TV" device.
+  console.log('Listening to document');
+  listenForKeys(document);
+}
+
+function listenForKeys(keyTarget) {
+  keyTarget.addEventListener('keydown', (event) => {
+    const elementId = keyToElementId(event.key);
+    const element = elementId ? document.getElementById(elementId) : null;
+    element?.classList.add('pressed');
+
+    // Log the keys for debugging purposes and to discover new remote keys.
+    console.log('key', event.key, event.target, element);
+  });
+
+  keyTarget.addEventListener('keyup', (event) => {
+    const elementId = keyToElementId(event.key);
+    const element = elementId ? document.getElementById(elementId) : null;
+    element?.classList.remove('pressed');
+
+    // If it's the back button, close the app.  Without this, the app may
+    // simply get "backgrounded" on certain devices, which is unhelpful.
+    if (event.key == 'BrowserBack') {
+      const context = cast.framework.CastReceiverContext.getInstance();
+      context.stop();
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Add an additional short delay for <touch-controls> to get added.
+  setTimeout(main, 500);
+});
+  </script>
+</html>
